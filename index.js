@@ -67,24 +67,35 @@ function getBookedTimesForDate(date) {
 }
 
 // Check for use of today and tomorrow
+function dublinISODate(offsetDays = 0) {
+  // Get "today" in Europe/Dublin as YYYY-MM-DD
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Dublin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date());
+
+  const y = Number(parts.find(p => p.type === 'year').value);
+  const m = Number(parts.find(p => p.type === 'month').value);
+  const d = Number(parts.find(p => p.type === 'day').value);
+
+  // Create a date at noon UTC to avoid DST edge cases, then add offset
+  const base = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  base.setUTCDate(base.getUTCDate() + offsetDays);
+
+  return base.toISOString().slice(0, 10);
+}
+
 function normaliseDateInput(message) {
   const m = (message || "").trim().toLowerCase();
 
-  const today = new Date();
-  const toISODate = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 10);
+  if (m.includes("tomorrow")) return dublinISODate(1);
+  if (m.includes("today")) return dublinISODate(0);
 
-  if (m === "today") return toISODate(today);
-
-  if (m === "tomorrow") {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return toISODate(d);
-  }
-
-  return message.trim(); // keep YYYY-MM-DD as-is
+  return (message || "").trim();
 }
+
 
 
 
