@@ -449,6 +449,11 @@ const html = `
 `;
 
 
+      res.send(html);
+    }
+  );
+});
+
 
 // Admin cancel functionality
 app.post('/admin/appointments/:id/cancel', (req, res) => {
