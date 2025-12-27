@@ -183,13 +183,51 @@ app.post('/chat', async (req, res) => {
       intent = detectIntentLocal(message);
     }
 
-    if (intent === "BOOK") {
+if (intent === "BOOK") {
+  const dateInput = normaliseDateInput(message);
+
+  // If user already provided a valid date (today/tomorrow/YYYY-MM-DD), skip date selection
+  if (slots[dateInput]) {
+    convo.selectedDate = dateInput;
+
+    try {
+      const bookedTimes = await getBookedTimesForDate(dateInput);
+      const availableTimes = slots[dateInput].filter(t => !bookedTimes.includes(t));
+
+      if (availableTimes.length === 0) {
+        // No times left on that date -> show all date options instead
+        reply = {
+          text: "No times left for that date — please choose another date:",
+          options: Object.keys(slots)
+        };
+        convo.step = 'date_selected';
+      } else {
+        reply = {
+          text: `Times available on ${dateInput}:`,
+          options: availableTimes
+        };
+        convo.step = 'time_selected';
+      }
+    } catch (err) {
+      console.error("DB error reading booked times:", err);
       reply = {
         text: "Please choose a date",
         options: Object.keys(slots)
       };
       convo.step = 'date_selected';
-    } else {
+    }
+  } else {
+    // No date given -> show date buttons
+    reply = {
+      text: "When would you like to come in? Choose a date:",
+      options: Object.keys(slots)
+    };
+    convo.step = 'date_selected';
+  }
+} else {
+  reply = "I can help you book a GP appointment. Just say something like “I need to see a doctor”.";
+}
+ else {
       reply = "I can help you book a GP appointment. Just say something like “I need to book a GP appointment”.";
     }
   }
