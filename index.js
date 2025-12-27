@@ -409,7 +409,7 @@ const html = `
     <table>
       <thead>
         <tr>
-          <th>ID</th><th>User</th><th>Date</th><th>Time</th>
+          <th>Date</th><th>Time</th>
           <th>Status</th><th>Created</th><th>Name</th><th>Phone</th><th>Reason</th><th>Actions</th>
         </tr>
       </thead>
@@ -420,8 +420,6 @@ const html = `
 
           return `
             <tr class="${rowClass}">
-              <td data-label="ID">${r.id}</td>
-              <td data-label="User">${r.user_id}</td>
               <td data-label="Date">${r.date}</td>
               <td data-label="Time">${r.time}</td>
               <td data-label="Status">${r.status}</td>
