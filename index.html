@@ -2,74 +2,140 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>AI GP Booking Chat</title>
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; background: #f0f2f5; }
-#chat {
-  border: 1px solid #ccc;
-  height: 400px;
-  overflow-y: auto;
-  padding: 10px;
-  margin-bottom: 10px;
-  background: #fff;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-}
-.message {
-  margin: 5px 0;
-  padding: 10px 14px;
-  border-radius: 20px;
-  max-width: 70%;
-  word-wrap: break-word;
-  display: inline-block;
-  position: relative;
-}
-.message.confirmed {
-  background: #ffc107; /* yellow/gold */
-  color: #000;
-  align-self: flex-end;
-  border-bottom-right-radius: 2px;
-}
-.user {
-  background: #007bff;
-  color: #fff;
-  align-self: flex-start;   /* LEFT side */
-  border-bottom-left-radius: 2px;
-}
+  * { box-sizing: border-box; }
 
-.bot {
-  background: #28a745;
-  color: #fff;
-  align-self: flex-end;     /* RIGHT side */
-  border-bottom-right-radius: 2px;
-}
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f0f2f5;
+  }
 
-.timestamp {
-  font-size: 0.7em;
-  color: #eee;
-  position: absolute;
-  bottom: 2px;
-  right: 10px;
-}
-#inputArea { display: flex; }
-#messageInput { flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
-#sendBtn, #resetBtn { padding: 8px 12px; margin-left: 5px; border-radius: 4px; border: none; cursor: pointer; color: #fff; }
-#sendBtn { background: #007bff; }
-#resetBtn { background: #dc3545; }
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    gap: 10px;
+  }
+
+  h2 { margin: 6px 0 0; font-size: 18px; }
+
+  #chat {
+    flex: 1;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 12px;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .message {
+    padding: 10px 12px;
+    border-radius: 18px;
+    max-width: 92%;
+    line-height: 1.25;
+    font-size: 15px;
+    word-break: break-word;
+  }
+
+  .user {
+    background: #007bff;
+    color: #fff;
+    align-self: flex-start;
+    border-bottom-left-radius: 6px;
+  }
+
+  .bot {
+    background: #28a745;
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 6px;
+  }
+
+  .confirmed {
+    background: #d4af37 !important; /* gold */
+    color: #111 !important;
+    font-weight: 600;
+  }
+
+  #inputArea {
+    display: flex;
+    gap: 8px;
+    position: sticky;
+    bottom: 0;
+    background: #f0f2f5;
+    padding: 8px 0;
+  }
+
+  #messageInput {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    font-size: 16px; /* stops iPhone zoom */
+  }
+
+  #sendBtn, #resetBtn {
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    font-size: 14px;
+    min-width: 84px;
+  }
+
+  #sendBtn { background: #007bff; }
+  #resetBtn { background: #dc3545; }
+
+  /* Options row (date/time buttons) */
+  .options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-self: flex-end;
+    margin: 2px 0 6px;
+  }
+
+  .optionBtn {
+    padding: 10px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(0,0,0,0.15);
+    background: #ffffff;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .optionBtn:active { transform: scale(0.98); }
+
+  @media (max-width: 420px) {
+    #sendBtn, #resetBtn { min-width: 72px; padding: 12px; }
+  }
 </style>
+
+
 
 </head>
 <body>
+  <div class="container">
+    <h2>GP Booking Chat</h2>
+    <div id="chat"></div>
 
-<h2>GP Booking Chat</h2>
-<div id="chat"></div>
-
-<div id="inputArea">
-  <input type="text" id="messageInput" placeholder="Type a message..." />
-  <button id="sendBtn">Send</button>
-  <button id="resetBtn">Reset</button>
-</div>
+    <div id="inputArea">
+      <input type="text" id="messageInput" placeholder="Type a message..." />
+      <button id="sendBtn">Send</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+  </div>
 
 
 <script>
@@ -96,26 +162,21 @@ function appendMessage(sender, text, type) {
 
 function appendOptions(optionsArray) {
   const container = document.createElement('div');
-  container.style.margin = "5px 0";
-  container.style.display = "flex";
-  container.style.flexWrap = "wrap";
-  container.style.gap = "6px";
-  container.style.alignSelf = "flex-end";
+  container.className = "options";
 
   optionsArray.forEach(opt => {
     const btn = document.createElement('button');
+    btn.className = "optionBtn";
+    btn.type = "button";
     btn.textContent = opt;
-    btn.style.padding = "6px 10px";
-    btn.style.borderRadius = "6px";
-    btn.style.border = "1px solid #ccc";
-    btn.style.cursor = "pointer";
     btn.onclick = () => sendMessage(opt);
     container.appendChild(btn);
   });
 
   chatDiv.appendChild(container);
-  chatDiv.scrollTop = chatDiv.scrollHeight;
+  chatDiv.scrollTo({ top: chatDiv.scrollHeight, behavior: 'smooth' });
 }
+
 
 async function sendMessage(message) {
   if (!message) return;
