@@ -400,6 +400,26 @@ const html = `
       }
       .actions { justify-content: flex-end; }
     }
+      
+    @media (max-width: 720px) {
+      td.actions::before {
+        content: "";
+        flex: 0;
+      }
+
+    td.actions {
+      justify-content: flex-end;
+    }
+
+    @media (max-width: 720px) {
+      td.actions form,
+      td.actions button {
+        width: 100%;
+    }
+}
+
+}
+
   </style>
 
   <div class="wrap">
