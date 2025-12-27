@@ -66,6 +66,27 @@ function getBookedTimesForDate(date) {
   });
 }
 
+// Check for use of today and tomorrow
+function normaliseDateInput(message) {
+  const m = (message || "").trim().toLowerCase();
+
+  const today = new Date();
+  const toISODate = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
+
+  if (m === "today") return toISODate(today);
+
+  if (m === "tomorrow") {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return toISODate(d);
+  }
+
+  return message.trim(); // keep YYYY-MM-DD as-is
+}
+
+
 
 // Local fallback (so app still works if OpenAI fails or cap hit)
 function detectIntentLocal(message) {
@@ -108,7 +129,8 @@ Reply with exactly one word: BOOK or OTHER.
 // Mock GP appointment slots
 const slots = {
   '2025-12-20': ['10:00', '11:00', '14:00'],
-  '2025-12-21': ['09:30', '13:00', '15:00']
+  '2025-12-21': ['09:30', '13:00', '15:00'],
+  '2025-12-28': ['09:30', '13:00', '15:00']
 };
 
 // Temporary in-memory conversation state
@@ -171,19 +193,24 @@ app.post('/chat', async (req, res) => {
       reply = "I can help you book a GP appointment. Just say something like “I need to book a GP appointment”.";
     }
   }
-  else if (convo.step === 'date_selected' && slots[message]) {
-    convo.selectedDate = message;
+else if (convo.step === 'date_selected') {
+  const dateInput = normaliseDateInput(message);
+
+  if (!slots[dateInput]) {
+    reply = "That date isn’t available — please pick one of the date buttons (or type today/tomorrow).";
+  } else {
+    convo.selectedDate = dateInput;
 
     try {
-      const bookedTimes = await getBookedTimesForDate(message);
-      const availableTimes = slots[message].filter(t => !bookedTimes.includes(t));
+      const bookedTimes = await getBookedTimesForDate(dateInput);
+      const availableTimes = slots[dateInput].filter(t => !bookedTimes.includes(t));
 
       if (availableTimes.length === 0) {
         reply = "Sorry — no times left on that date. Please pick another date.";
-        // stay in date_selected so they can click another date button
+        // stay in date_selected
       } else {
         reply = {
-          text: `Times available on ${message}:`,
+          text: `Times available on ${dateInput}:`,
           options: availableTimes
         };
         convo.step = 'time_selected';
@@ -193,6 +220,8 @@ app.post('/chat', async (req, res) => {
       reply = "Sorry — I couldn't load availability. Please try again.";
     }
   }
+}
+
 
 else if (convo.step === 'time_selected') {
   if (convo.selectedDate && slots[convo.selectedDate].includes(message)) {
