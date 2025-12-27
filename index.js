@@ -227,9 +227,6 @@ if (intent === "BOOK") {
 } else {
   reply = "I can help you book a GP appointment. Just say something like “I need to see a doctor”.";
 }
- else {
-      reply = "I can help you book a GP appointment. Just say something like “I need to book a GP appointment”.";
-    }
   }
 else if (convo.step === 'date_selected') {
   const dateInput = normaliseDateInput(message);
