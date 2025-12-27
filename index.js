@@ -349,51 +349,105 @@ app.get('/admin', (req, res) => {
         return res.status(500).send("DB error");
       }
 
-      const html = `
-        <h2>Appointments</h2>
-        <table border="1" cellpadding="6" cellspacing="0">
-          <tr>
-            <th>ID</th><th>User</th><th>Date</th><th>Time</th>
-            <th>Status</th><th>Created</th><th>Name</th><th>Phone</th><th>Reason</th><th>Actions</th>
-          </tr>
-            ${rows.map(r => {
-              const rowStyle = r.status === 'confirmed'
-                ? 'background:#e6ffed;'   // light green
-                : 'background:#ffe6e6; color:#555;'; // light red/grey
+const html = `
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-              return `
-                <tr style="${rowStyle}">
-                  <td>${r.id}</td>
-                  <td>${r.user_id}</td>
-                  <td>${r.date}</td>
-                  <td>${r.time}</td>
-                  <td>${r.status}</td>
-                  <td>${r.created_at}</td>
-                  <td>${r.patient_name || ''}</td>
-                  <td>${r.patient_phone || ''}</td>
-                  <td>${r.reason || ''}</td>
-                  <td>
-                    ${
-                      r.status === 'confirmed'
-                        ? `<form method="POST" action="/admin/appointments/${r.id}/cancel" style="display:inline;">
-                            <button type="submit">Cancel</button>
-                          </form>`
-                        : `<form method="POST" action="/admin/appointments/${r.id}/reinstate" style="display:inline;">
-                            <button type="submit">Reinstate</button>
-                          </form>`
-                    }
-                  </td>
-                </tr>
-              `;
-}).join('')}
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background:#f6f7f9; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 12px; }
+    h2 { margin: 10px 0 6px; font-size: 18px; }
+    .hint { color:#666; font-size: 13px; margin-bottom: 10px; }
 
-        </table>
-      `;
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow:hidden; }
+    th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; vertical-align: top; }
+    th { background:#fafafa; font-size: 13px; color:#333; }
+    tr:last-child td { border-bottom: none; }
 
-      res.send(html);
+    .row-confirmed { background:#e6ffed; }
+    .row-cancelled { background:#ffe6e6; color:#555; }
+
+    button { padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; color:#fff; }
+    .btn-cancel { background:#dc3545; }
+    .btn-reinstate { background:#198754; }
+
+    /* Mobile: turn table into cards */
+    @media (max-width: 720px) {
+      table, thead, tbody, th, td, tr { display: block; }
+      thead { display: none; }
+      table { background: transparent; border-radius: 0; overflow: visible; }
+      tr {
+        background: #fff;
+        margin-bottom: 10px;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #e9e9e9;
+      }
+      td {
+        border: none;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        word-break: break-word;
+      }
+      td:last-child { border-bottom: none; }
+      td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #444;
+        flex: 0 0 110px;
+      }
+      .actions { justify-content: flex-end; }
     }
-  );
-});
+  </style>
+
+  <div class="wrap">
+    <h2>Appointments</h2>
+    <div class="hint">Confirmed at the top, cancelled below.</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>User</th><th>Date</th><th>Time</th>
+          <th>Status</th><th>Created</th><th>Name</th><th>Phone</th><th>Reason</th><th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${rows.map(r => {
+          const rowClass = r.status === 'confirmed' ? 'row-confirmed' : 'row-cancelled';
+
+          return `
+            <tr class="${rowClass}">
+              <td data-label="ID">${r.id}</td>
+              <td data-label="User">${r.user_id}</td>
+              <td data-label="Date">${r.date}</td>
+              <td data-label="Time">${r.time}</td>
+              <td data-label="Status">${r.status}</td>
+              <td data-label="Created">${r.created_at}</td>
+              <td data-label="Name">${r.patient_name || ''}</td>
+              <td data-label="Phone">${r.patient_phone || ''}</td>
+              <td data-label="Reason">${r.reason || ''}</td>
+              <td data-label="Actions" class="actions">
+                ${
+                  r.status === 'confirmed'
+                    ? `<form method="POST" action="/admin/appointments/${r.id}/cancel" style="display:inline;">
+                        <button class="btn-cancel" type="submit">Cancel</button>
+                      </form>`
+                    : `<form method="POST" action="/admin/appointments/${r.id}/reinstate" style="display:inline;">
+                        <button class="btn-reinstate" type="submit">Reinstate</button>
+                      </form>`
+                }
+              </td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+`;
+
 
 
 // Admin cancel functionality
