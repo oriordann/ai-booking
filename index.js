@@ -186,8 +186,10 @@ app.get("/config", (req, res) => {
 });
 
 app.post('/chat', async (req, res) => {
-const { userId, message, biz } = req.body;
+const { userId, message, biz = "gp" } = req.body;
 const cfg = businesses[biz] || businesses.gp;
+
+console.log("chat req: ", {userId, message, biz});
 
   if (!userId || !message) {
     return res.status(400).json({ error: 'userId and message are required' });
