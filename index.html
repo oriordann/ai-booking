@@ -149,6 +149,21 @@ const params = new URLSearchParams(window.location.search);
 const biz = params.get("biz") || "gp";
 const userId = 'webuser1';
 
+
+async function loadConfig() {
+  const res = await fetch(`/config?biz=${encodeURIComponent(biz)}`);
+  const cfg = await res.json();
+
+  document.getElementById("bizTitle").textContent = cfg.name;
+  document.getElementById("bizGreeting").textContent = cfg.greeting;
+
+  // Optional: theme buttons
+  document.documentElement.style.setProperty("--primary", cfg.brand.primary);
+  document.documentElement.style.setProperty("--accent", cfg.brand.accent);
+}
+
+loadConfig();
+
 function appendMessage(sender, text, type) {
   const div = document.createElement('div');
   div.classList.add('message', sender);

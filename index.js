@@ -51,20 +51,6 @@ db.serialize(() => {
   `);
 });
 
-async function loadConfig() {
-  const res = await fetch(`/config?biz=${encodeURIComponent(biz)}`);
-  const cfg = await res.json();
-
-  document.getElementById("bizTitle").textContent = cfg.name;
-  document.getElementById("bizGreeting").textContent = cfg.greeting;
-
-  // Optional: theme buttons
-  document.documentElement.style.setProperty("--primary", cfg.brand.primary);
-  document.documentElement.style.setProperty("--accent", cfg.brand.accent);
-}
-
-loadConfig();
-
 
 // Check Database for times already confirmed
 function getBookedTimesForDate(date) {
@@ -442,6 +428,7 @@ const html = `
         content: "";
         flex: 0;
       }
+    }
 
     td.actions {
       justify-content: flex-end;
@@ -452,9 +439,9 @@ const html = `
       td.actions button {
         width: 100%;
     }
-}
+    
 
-}
+
 
   </style>
 
