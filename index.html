@@ -146,7 +146,8 @@
 </head>
 <body>
   <div class="container">
-    <h2>GP Booking Chat</h2>
+    <h2 id="bizTitle">Booking</h2>
+    <p id="bizGreeting" style="margin-top:0;color:#666;"></p>
     <div id="chat"></div>
 
     <div id="inputArea">
@@ -162,7 +163,8 @@ const chatDiv = document.getElementById('chat');
 const input = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
 const resetBtn = document.getElementById('resetBtn');
-
+const params = new URLSearchParams(window.location.search);
+const biz = params.get("biz") || "gp";
 const userId = 'webuser1';
 
 function appendMessage(sender, text, type) {
@@ -206,7 +208,7 @@ async function sendMessage(message) {
     const res = await fetch('/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, message })
+      body: JSON.stringify({ userId, biz, message })
     });
 
     const data = await res.json();

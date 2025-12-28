@@ -51,6 +51,24 @@ db.serialize(() => {
   `);
 });
 
+// Make the app business specific
+const params = new URLSearchParams(location.search);
+const biz = params.get("biz") || "gp";
+
+async function loadConfig() {
+  const res = await fetch(`/config?biz=${encodeURIComponent(biz)}`);
+  const cfg = await res.json();
+
+  document.getElementById("bizTitle").textContent = cfg.name;
+  document.getElementById("bizGreeting").textContent = cfg.greeting;
+
+  // Optional: theme buttons
+  document.documentElement.style.setProperty("--primary", cfg.brand.primary);
+  document.documentElement.style.setProperty("--accent", cfg.brand.accent);
+}
+
+loadConfig();
+
 
 // Check Database for times already confirmed
 function getBookedTimesForDate(date) {
@@ -152,8 +170,28 @@ app.get('/', (req, res) => {
   res.send('AI Booking backend is running 🚀');
 });
 
+const businesses = require("./businesses");
+
+function getBiz(req) {
+  const biz = (req.query.biz || req.headers["x-biz"] || "gp").toString();
+  return businesses[biz] ? biz : "gp";
+}
+
+app.get("/config", (req, res) => {
+  const biz = getBiz(req);
+  const cfg = businesses[biz];
+
+  res.json({
+    biz: cfg.id,
+    name: cfg.name,
+    brand: cfg.brand,
+    greeting: cfg.copy.greeting
+  });
+});
+
 app.post('/chat', async (req, res) => {
-  const { userId, message } = req.body;
+const { userId, message, biz } = req.body;
+const cfg = businesses[biz] || businesses.gp;
 
   if (!userId || !message) {
     return res.status(400).json({ error: 'userId and message are required' });
