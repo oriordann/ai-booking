@@ -309,7 +309,7 @@ else if (convo.step === 'collect_name') {
 else if (convo.step === 'collect_reason') {
   convo.reason = message.trim();
   convo.step = 'collect_phone';
-  reply = cfg.copy.akPhone;
+  reply = cfg.copy.askPhone;
 }
 else if (convo.step === 'collect_phone') {
   const m = message.trim();
