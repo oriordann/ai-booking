@@ -230,13 +230,13 @@ if (intent === "BOOK") {
       if (availableTimes.length === 0) {
         // No times left on that date -> show all date options instead
         reply = {
-          text: "No times left for that date — please choose another date:",
+          text: cfg.copy.pickDateNoTimes,
           options: Object.keys(slots)
         };
         convo.step = 'date_selected';
       } else {
         reply = {
-          text: `Times available on ${dateInput}:`,
+          text: cfg.copy.pickTime(dateInput),
           options: availableTimes
         };
         convo.step = 'time_selected';
@@ -252,20 +252,20 @@ if (intent === "BOOK") {
   } else {
     // No date given -> show date buttons
     reply = {
-      text: "When would you like to come in? Choose a date:",
+      text: cfg.copy.pickDate,
       options: Object.keys(slots)
     };
     convo.step = 'date_selected';
   }
 } else {
-  reply = "I can help you book a GP appointment. Just say something like “I need to see a doctor”.";
+    reply = cfg.copy.fallback;
 }
   }
 else if (convo.step === 'date_selected') {
   const dateInput = normaliseDateInput(message);
 
   if (!slots[dateInput]) {
-    reply = "That date isn’t available — please pick one of the date buttons (or type today/tomorrow).";
+      reply = cfg.copy.invalidDate;
   } else {
     convo.selectedDate = dateInput;
 
@@ -274,11 +274,11 @@ else if (convo.step === 'date_selected') {
       const availableTimes = slots[dateInput].filter(t => !bookedTimes.includes(t));
 
       if (availableTimes.length === 0) {
-        reply = "Sorry — no times left on that date. Please pick another date.";
+        reply = cfg.copy.pickDateNoTimes;
         // stay in date_selected
       } else {
         reply = {
-          text: `Times available on ${dateInput}:`,
+          text: cfg.copy.pickTime(dateInput),
           options: availableTimes
         };
         convo.step = 'time_selected';
@@ -295,21 +295,21 @@ else if (convo.step === 'time_selected') {
   if (convo.selectedDate && slots[convo.selectedDate].includes(message)) {
     convo.selectedTime = message;
     convo.step = 'collect_name';
-    reply = "Great — what name should I put on the appointment?";
+    reply = cfg.copy.askName;
   } else {
-    reply = "That time isn’t available—please pick one of the time buttons.";
+      reply = cfg.copy.invalidTime;
   }
 }
 
 else if (convo.step === 'collect_name') {
   convo.patientName = message.trim();
   convo.step = 'collect_reason';
-  reply = "Thanks. Briefly, what’s the reason for the visit? (e.g. cough, earache, medication review)";
+  reply = cfg.copy.askReason;
 }
 else if (convo.step === 'collect_reason') {
   convo.reason = message.trim();
   convo.step = 'collect_phone';
-  reply = "Optional: what phone number should we use? (Or type 'skip')";
+  reply = cfg.copy.akPhone;
 }
 else if (convo.step === 'collect_phone') {
   const m = message.trim();
@@ -333,7 +333,7 @@ else if (convo.step === 'collect_phone') {
 
       convo.step = 'confirmed';
       return res.json({
-        reply: `Appointment confirmed for ${convo.patientName} on ${convo.selectedDate} at ${convo.selectedTime} ✅`
+        reply: cfg.copy.confirm(convo.patientName, convo.selectedDate, convo.selectedTime)
       });
     }
   );
@@ -341,9 +341,9 @@ else if (convo.step === 'collect_phone') {
 }
 
   else if (convo.step === 'confirmed') {
-    reply = "Your appointment is already confirmed. Type reset to start again.";
+    reply = cfg.copy.alreadyConfirmed;
   } else {
-    reply = "I’m not sure what to do next—type reset to start again.";
+    reply = cfg.copy.unknownNext;
   }
 
   res.json({ reply });
