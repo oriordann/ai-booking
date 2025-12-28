@@ -51,10 +51,6 @@ db.serialize(() => {
   `);
 });
 
-// Make the app business specific
-const params = new URLSearchParams(location.search);
-const biz = params.get("biz") || "gp";
-
 async function loadConfig() {
   const res = await fetch(`/config?biz=${encodeURIComponent(biz)}`);
   const cfg = await res.json();
