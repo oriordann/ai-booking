@@ -25,13 +25,23 @@ const PORT = process.env.PORT || 3000;
 // Twilio - Whatsapp chat
 const twilio = require("twilio");
 
-app.use(express.urlencoded({ extended:false }));
+app.use(express.urlencoded({ extended: false }));
 
 app.post("/whatsapp/inbound", async (req, res) => {
   try {
     const from = req.body.From;                 // "whatsapp:+353..."
-    const body = (req.body.Body || "").trim();  // user message
+    let body = (req.body.Body || "").trim();    // user message (let because we may rewrite it)
     const biz = req.query.biz || "gp";
+
+    // ✅ If user replies with a number (1/2/3), map it to the last options we sent them
+    const n = parseInt(body, 10);
+    if (!Number.isNaN(n) && conversations[from]?.lastOptions?.length) {
+      const opts = conversations[from].lastOptions;
+      if (n >= 1 && n <= opts.length) {
+        body = opts[n - 1];              // turn "2" into "2025-12-21" (or "10:00")
+        conversations[from].lastOptions = null; // clear after use
+      }
+    }
 
     const reply = await handleChatMessage({
       userId: from,
@@ -41,11 +51,19 @@ app.post("/whatsapp/inbound", async (req, res) => {
 
     const twiml = new twilio.twiml.MessagingResponse();
 
-    // WhatsApp can only receive text unless you implement interactive messages
     if (typeof reply === "string") {
       twiml.message(reply);
+
     } else if (reply && typeof reply === "object") {
-      twiml.message(`${reply.text}\n${(reply.options || []).join(", ")}`);
+      const options = reply.options || [];
+
+      // ✅ store options so the next inbound "1/2/3" can be mapped
+      if (!conversations[from]) conversations[from] = { step: "start" };
+      conversations[from].lastOptions = options;
+
+      const numbered = options.map((o, i) => `${i + 1}) ${o}`).join("\n");
+      twiml.message(`${reply.text}\n${numbered}\n\nReply with a number (1-${options.length}).`);
+
     } else {
       twiml.message("Sorry — I couldn’t process that. Please try again.");
     }
