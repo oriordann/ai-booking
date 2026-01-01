@@ -462,7 +462,7 @@ else if (convo.step === "time_selected") {
     const result = await new Promise((resolve) => {
       db.run(
         `INSERT INTO appointments (biz_id, user_id, date, time, status, patient_name, patient_phone, reason)
-         VALUES (?, ?, ?, 'confirmed', ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, 'confirmed', ?, ?, ?)`,
         [biz, userId, convo.selectedDate, convo.selectedTime, convo.patientName, convo.patientPhone, convo.reason],
         function (err) {
           if (err) {
