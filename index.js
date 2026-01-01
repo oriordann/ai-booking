@@ -295,6 +295,8 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
   biz = (biz || "gp").toString();
   const cfg = businesses[biz] || businesses.gp;
 
+  console.log("CFG intro?", biz, !!cfg?.copy?.intro);
+
   console.log("chat req:", { userId, message, biz });
 
   if (!userId || !message) {
@@ -330,6 +332,8 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
   const dates = await getAvailableDates(biz);
   const convo = conversations[userId];
   let reply;
+
+  console.log("STATE before start:", userId, conversations[userId]);
 
   // --- Conversation logic ---
 if (convo.step === "start") {
