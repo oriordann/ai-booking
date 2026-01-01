@@ -2,11 +2,15 @@
 module.exports = {
   gp: {
     id: "gp",
-    name: "Lower Friars Walk Clinic",
+    name: "Lower Friars Walk Centre",
     industry: "healthcare",
     brand: { primary: "#0d6efd", accent: "#198754" },
     copy: {
       greeting: "Hi — I can help you book an appointment. What’s the issue?",
+      intro:
+      "Welcome to Lower Friars Walk Medical Centre.\n\n" +
+      "To book an appointment, please type:\n" +
+      "“I need to see a doctor”",
       pickDate: "When would you like to come in? Choose a date:",
       pickTime: (date) => `Times available on ${date}:`,
       confirm: (date, time) => `Appointment confirmed for ${date} at ${time} ✅`,

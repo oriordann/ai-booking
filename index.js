@@ -253,8 +253,16 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
 
   // Initialize memory
   if (!conversations[userId]) {
-    conversations[userId] = { step: "start", selectedDate: null };
+    conversations[userId] = {
+      step: "start",
+      selectedDate: null,
+      introShown: true
+    };
+
+    // 👇 send intro immediately
+    return cfg.copy.intro;
   }
+
 
   const convo = conversations[userId];
   let reply;

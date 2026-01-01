@@ -163,6 +163,7 @@ async function loadConfig() {
 }
 
 loadConfig();
+appendMessage("bot", document.getElementById("bizGreeting").textContent);
 
 function appendMessage(sender, text, type) {
   const div = document.createElement('div');
