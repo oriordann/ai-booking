@@ -657,6 +657,93 @@ const html = `
   );
 });
 
+// Availability DB
+app.get("/admin/availability", (req, res) => {
+  const biz = (req.query.biz || "gp").toString();
+
+  db.all(
+    `SELECT id, biz_id, date, time, capacity
+     FROM availability
+     WHERE biz_id = ?
+     ORDER BY date, time`,
+    [biz],
+    (err, rows) => {
+      if (err) return res.status(500).send("DB error");
+
+      const html = `
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          body { font-family: Arial; margin:0; background:#f6f7f9; }
+          .wrap { max-width: 900px; margin: 0 auto; padding: 12px; }
+          table { width:100%; border-collapse: collapse; background:#fff; border-radius:10px; overflow:hidden; }
+          th, td { padding:10px; border-bottom:1px solid #eee; text-align:left; }
+          th { background:#fafafa; font-size: 13px; }
+          .row { display:flex; gap:8px; flex-wrap:wrap; margin: 10px 0; }
+          input { padding:10px; border-radius:8px; border:1px solid #ddd; }
+          button { padding:10px 12px; border-radius:8px; border:none; cursor:pointer; color:#fff; background:#007bff; }
+          .delBtn { background:#dc3545; }
+        </style>
+
+        <div class="wrap">
+          <h2>Availability (${biz})</h2>
+          <div><a href="/admin?biz=${biz}">← Appointments</a></div>
+
+          <form class="row" method="POST" action="/admin/availability/add?biz=${biz}">
+            <input name="date" placeholder="YYYY-MM-DD" required />
+            <input name="time" placeholder="HH:MM" required />
+            <input name="capacity" type="number" min="1" value="1" />
+            <button type="submit">Add slot</button>
+          </form>
+
+          <table>
+            <thead><tr><th>Date</th><th>Time</th><th>Capacity</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr>
+                  <td>${r.date}</td>
+                  <td>${r.time}</td>
+                  <td>${r.capacity || 1}</td>
+                  <td>
+                    <form method="POST" action="/admin/availability/${r.id}/delete?biz=${biz}" style="display:inline;">
+                      <button class="delBtn" type="submit">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+      res.send(html);
+    }
+  );
+});
+
+app.post("/admin/availability/add", (req, res) => {
+  const biz = (req.query.biz || "gp").toString();
+  const { date, time, capacity } = req.body;
+
+  db.run(
+    `INSERT OR IGNORE INTO availability (biz_id, date, time, capacity)
+     VALUES (?, ?, ?, ?)`,
+    [biz, date, time, Number(capacity || 1)],
+    (err) => {
+      if (err) return res.status(500).send("DB error");
+      res.redirect(`/admin/availability?biz=${biz}`);
+    }
+  );
+});
+
+app.post("/admin/availability/:id/delete", (req, res) => {
+  const biz = (req.query.biz || "gp").toString();
+  const { id } = req.params;
+
+  db.run(`DELETE FROM availability WHERE id = ?`, [id], (err) => {
+    if (err) return res.status(500).send("DB error");
+    res.redirect(`/admin/availability?biz=${biz}`);
+  });
+});
+
 
 // Admin cancel functionality
 app.post('/admin/appointments/:id/cancel', (req, res) => {
