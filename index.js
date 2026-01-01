@@ -309,7 +309,8 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
       selectedTime: null,
       patientName: null,
       patientPhone: null,
-      reason: null
+      reason: null,
+      introShown:false
     };
     return "Conversation reset. How can I help you?";
   }
@@ -319,7 +320,7 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
     conversations[userId] = {
       step: "start",
       selectedDate: null,
-      introShown: true
+      introShown: false
     };
 
     // 👇 send intro immediately
@@ -332,6 +333,13 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
 
   // --- Conversation logic ---
 if (convo.step === "start") {
+
+//Show intro once per conversation
+if (!convo.introShown) {
+  convo.introShown = true;
+  return cfg.copy.intro;
+}
+
   let intent = "OTHER";
   try {
     intent = await detectIntent(message);
