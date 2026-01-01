@@ -78,20 +78,22 @@ app.post("/whatsapp/inbound", async (req, res) => {
 
 
 db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS appointments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT,
-      date TEXT,
-      time TEXT,
-      status TEXT DEFAULT 'confirmed',
-      created_at TEXT DEFAULT (datetime('now'))
-    )
-  `);
+db.run(`
+  CREATE TABLE IF NOT EXISTS appointments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    biz_id TEXT,
+    user_id TEXT,
+    date TEXT,
+    time TEXT,
+    status TEXT DEFAULT 'confirmed',
+    created_at TEXT DEFAULT (datetime('now'))
+  )
+`);
 
   db.run(`ALTER TABLE appointments ADD COLUMN patient_name TEXT`, () => {});
   db.run(`ALTER TABLE appointments ADD COLUMN patient_phone TEXT`, () => {});
   db.run(`ALTER TABLE appointments ADD COLUMN reason TEXT`, () => {});
+  db.run(`ALTER TABLE appointments ADD COLUMN biz_id TEXT`, () => {});
 
 
   // Drop older indexes if they exist
@@ -101,18 +103,37 @@ db.serialize(() => {
   // Enforce uniqueness ONLY for confirmed bookings
   db.run(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_appt_unique_confirmed
-    ON appointments(date, time)
+    ON appointments(biz_id, date, time)
     WHERE status = 'confirmed'
   `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS availability (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      biz_id TEXT NOT NULL,
+      date TEXT NOT NULL,
+      time TEXT NOT NULL,
+      capacity INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  db.run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_avail_unique
+    ON availability(biz_id, date, time)
+  `);
+
+
 });
 
 
 // Check Database for times already confirmed
-function getBookedTimesForDate(date) {
+function getBookedTimesForDate(bizId, date) {
   return new Promise((resolve, reject) => {
     db.all(
-      `SELECT time FROM appointments WHERE date = ? AND status = 'confirmed'`,
-      [date],
+      `SELECT time FROM appointments
+       WHERE biz_id = ? AND date = ? AND status = 'confirmed'`,
+      [bizId, date],
       (err, rows) => {
         if (err) return reject(err);
         resolve(rows.map(r => r.time));
@@ -120,6 +141,47 @@ function getBookedTimesForDate(date) {
     );
   });
 }
+
+function getAvailableDates(bizId) {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT DISTINCT date
+       FROM availability
+       WHERE biz_id = ?
+       ORDER BY date`,
+      [bizId],
+      (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows.map(r => r.date));
+      }
+    );
+  });
+}
+
+function getAvailableTimesForDate(bizId, date) {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT time FROM availability
+       WHERE biz_id = ? AND date = ?
+       ORDER BY time`,
+      [bizId, date],
+      (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows.map(r => r.time));
+      }
+    );
+  });
+}
+
+async function getFreeTimesForDate(bizId, date) {
+  const [availTimes, bookedTimes] = await Promise.all([
+    getAvailableTimesForDate(bizId, date),
+    getBookedTimesForDate(bizId, date),
+  ]);
+
+  return availTimes.filter(t => !bookedTimes.includes(t));
+}
+
 
 // Check for use of today and tomorrow
 function dublinISODate(offsetDays = 0) {
@@ -263,103 +325,122 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
     return cfg.copy.intro;
   }
 
-
+  const dates = await getAvailableDates(biz);
   const convo = conversations[userId];
   let reply;
 
   // --- Conversation logic ---
-  if (convo.step === "start") {
-    let intent = "OTHER";
-    try {
-      intent = await detectIntent(message);
-    } catch (e) {
-      console.error("OpenAI error (fallback to local)");
-      console.error("Status:", e?.status);
-      console.error("Message:", e?.message);
-      console.error("Details:", e?.error || e?.response?.data || e);
-      intent = detectIntentLocal(message);
-    }
+if (convo.step === "start") {
+  let intent = "OTHER";
+  try {
+    intent = await detectIntent(message);
+  } catch (e) {
+    console.error("OpenAI error (fallback to local)");
+    console.error("Status:", e?.status);
+    console.error("Message:", e?.message);
+    console.error("Details:", e?.error || e?.response?.data || e);
+    intent = detectIntentLocal(message);
+  }
 
-    if (intent === "BOOK") {
-      const dateInput = normaliseDateInput(message);
+  if (intent === "BOOK") {
+    const dateInput = normaliseDateInput(message);
 
-      // If they already provided a valid date (today/tomorrow/YYYY-MM-DD)
-      if (slots[dateInput]) {
-        convo.selectedDate = dateInput;
+    // ✅ Get available dates from DB (per business)
+    const dates = await getAvailableDates(biz);
 
-        try {
-          const bookedTimes = await getBookedTimesForDate(dateInput);
-          const availableTimes = slots[dateInput].filter(t => !bookedTimes.includes(t));
+    // If user already provided a valid date (today/tomorrow/YYYY-MM-DD), skip date selection
+    if (dates.includes(dateInput)) {
+      convo.selectedDate = dateInput;
 
-          if (availableTimes.length === 0) {
-            reply = {
-              text: "No times left for that date — please choose another date:",
-              options: Object.keys(slots)
-            };
-            convo.step = "date_selected";
-          } else {
-            reply = {
-              text: `Times available on ${dateInput}:`,
-              options: availableTimes
-            };
-            convo.step = "time_selected";
-          }
-        } catch (err) {
-          console.error("DB error reading booked times:", err);
-          reply = { text: "Please choose a date", options: Object.keys(slots) };
+      try {
+        const freeTimes = await getFreeTimesForDate(biz, dateInput);
+
+        if (freeTimes.length === 0) {
+          reply = {
+            text: "No times left for that date — please choose another date:",
+            options: dates
+          };
           convo.step = "date_selected";
+        } else {
+          reply = {
+            text: `Times available on ${dateInput}:`,
+            options: freeTimes
+          };
+          convo.step = "time_selected";
         }
-
-      } else {
-        // No date supplied -> show date buttons
-        reply = {
-          text: "When would you like to come in? Choose a date:",
-          options: Object.keys(slots)
-        };
+      } catch (err) {
+        console.error("DB error reading free times:", err);
+        reply = { text: cfg.copy.askDate || "Please choose a date:", options: dates };
         convo.step = "date_selected";
       }
 
     } else {
-      reply = cfg.copy?.fallback
-        || "I can help you book an appointment. Just say something like “I need to book an appointment”.";
+      // No valid date supplied -> show date buttons
+      reply = {
+        text: "When would you like to come in? Choose a date:",
+        options: dates
+      };
+      convo.step = "date_selected";
     }
+
+  } else {
+    reply = cfg.copy?.fallback
+      || "I can help you book an appointment. Just say something like “I need to book an appointment”.";
+  }
+}
+
+
+else if (convo.step === "date_selected") {
+  const dateInput = normaliseDateInput(message);
+
+  // ✅ Validate the date against DB availability (not the old slots object)
+  const dates = await getAvailableDates(biz);
+  if (!dates.includes(dateInput)) {
+    reply = "That date isn’t available — please pick one of the date options (or type today/tomorrow).";
+    return reply; // <-- remove this line if you're inside handleChatMessage, see note below
   }
 
-  else if (convo.step === "date_selected") {
-    const dateInput = normaliseDateInput(message);
+  convo.selectedDate = dateInput;
 
-    if (!slots[dateInput]) {
-      reply = "That date isn’t available — please pick one of the date buttons (or type today/tomorrow).";
+  try {
+    const freeTimes = await getFreeTimesForDate(biz, dateInput);
+
+    if (freeTimes.length === 0) {
+      reply = "Sorry — no times left on that date. Please pick another date.";
+      // stay in date_selected
     } else {
-      convo.selectedDate = dateInput;
+      reply = { text: `Times available on ${dateInput}:`, options: freeTimes };
+      convo.step = "time_selected";
+    }
+  } catch (err) {
+    console.error("DB error reading free times:", err);
+    reply = "Sorry — I couldn't load availability. Please try again.";
+  }
+}
 
-      try {
-        const bookedTimes = await getBookedTimesForDate(dateInput);
-        const availableTimes = slots[dateInput].filter(t => !bookedTimes.includes(t));
 
-        if (availableTimes.length === 0) {
-          reply = "Sorry — no times left on that date. Please pick another date.";
-          // stay in date_selected
-        } else {
-          reply = { text: `Times available on ${dateInput}:`, options: availableTimes };
-          convo.step = "time_selected";
-        }
-      } catch (err) {
-        console.error("DB error reading booked times:", err);
-        reply = "Sorry — I couldn't load availability. Please try again.";
+else if (convo.step === "time_selected") {
+  if (!convo.selectedDate) {
+    convo.step = "date_selected";
+    reply = "Please choose a date first.";
+  } else {
+    try {
+      const freeTimes = await getFreeTimesForDate(biz, convo.selectedDate);
+
+      if (freeTimes.includes(message)) {
+        convo.selectedTime = message;
+        convo.step = "collect_name";
+        reply = "Great — what name should I put on the appointment?";
+      } else {
+        reply = "That time isn’t available—please pick one of the time options.";
       }
+    } catch (err) {
+      console.error("DB error reading free times:", err);
+      reply = "Sorry — I couldn't confirm availability. Please try again.";
     }
   }
+}
 
-  else if (convo.step === "time_selected") {
-    if (convo.selectedDate && slots[convo.selectedDate].includes(message)) {
-      convo.selectedTime = message;
-      convo.step = "collect_name";
-      reply = "Great — what name should I put on the appointment?";
-    } else {
-      reply = "That time isn’t available—please pick one of the time buttons.";
-    }
-  }
 
   else if (convo.step === "collect_name") {
     convo.patientName = message.trim();
@@ -380,9 +461,9 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
     // Wrap db.run in a Promise so we can return a final message
     const result = await new Promise((resolve) => {
       db.run(
-        `INSERT INTO appointments (user_id, date, time, status, patient_name, patient_phone, reason)
+        `INSERT INTO appointments (biz_id, user_id, date, time, status, patient_name, patient_phone, reason)
          VALUES (?, ?, ?, 'confirmed', ?, ?, ?)`,
-        [userId, convo.selectedDate, convo.selectedTime, convo.patientName, convo.patientPhone, convo.reason],
+        [biz, userId, convo.selectedDate, convo.selectedTime, convo.patientName, convo.patientPhone, convo.reason],
         function (err) {
           if (err) {
             if (err.message && err.message.includes("UNIQUE")) {
