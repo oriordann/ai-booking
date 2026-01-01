@@ -292,10 +292,9 @@ app.get("/config", (req, res) => {
 // For Twilio and Whatsapp integration
 async function handleChatMessage({ userId, message, biz = "gp" }) {
   // safety defaults
+  console.log("STATE incoming:", {userId, biz, message});
   biz = (biz || "gp").toString();
   const cfg = businesses[biz] || businesses.gp;
-
-  console.log("CFG intro?", biz, !!cfg?.copy?.intro);
 
   console.log("chat req:", { userId, message, biz });
 
@@ -314,6 +313,7 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
       reason: null,
       introShown:false
     };
+    console.log("Early return: reset");
     return "Conversation reset. How can I help you?";
   }
 
@@ -326,14 +326,17 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
     };
 
     // 👇 send intro immediately
+    console.log("Early return: intro");
     return cfg.copy.intro;
   }
 
+  console.log("STATE after init:", conversations[userId]);
+  console.log("CFG intro exists?", biz, !!cfg?.copy?.intro);
   const dates = await getAvailableDates(biz);
   const convo = conversations[userId];
   let reply;
 
-  console.log("STATE before start:", userId, conversations[userId]);
+  console.log("STATE before start:", {step: convo.step, introShown:convo.introShown});
 
   // --- Conversation logic ---
 if (convo.step === "start") {
