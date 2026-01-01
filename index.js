@@ -326,7 +326,7 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
     };
 
     // 👇 send intro immediately
-    console.log("Early return: intro");
+   
     return cfg.copy.intro;
   }
 
@@ -336,14 +336,15 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
   const convo = conversations[userId];
   let reply;
 
-  console.log("STATE before start:", {step: convo.step, introShown:convo.introShown});
+
 
   // --- Conversation logic ---
 if (convo.step === "start") {
-
+  console.log("STATE before start:", {step: convo.step, introShown:convo.introShown});
 //Show intro once per conversation
 if (!convo.introShown) {
   convo.introShown = true;
+   console.log("Early return: intro");
   return cfg.copy.intro;
 }
 
