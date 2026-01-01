@@ -284,7 +284,8 @@ app.get("/config", (req, res) => {
     biz: cfg.id,
     name: cfg.name,
     brand: cfg.brand,
-    greeting: cfg.copy.greeting
+    greeting: cfg.copy.greeting,
+    intro: cfg.copy.intro
   });
 });
 

@@ -157,6 +157,11 @@ async function loadConfig() {
   document.getElementById("bizTitle").textContent = cfg.name;
   document.getElementById("bizGreeting").textContent = cfg.greeting;
 
+  // Show intro immediately
+  if (cfg.intro) {
+    appendMessage("bot", cfg.intro);
+  }
+
   // Optional: theme buttons
   document.documentElement.style.setProperty("--primary", cfg.brand.primary);
   document.documentElement.style.setProperty("--accent", cfg.brand.accent);
@@ -228,6 +233,10 @@ if (typeof data.reply === 'string') {
     console.error(err);
   }
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadConfig();
+});
 
 sendBtn.addEventListener('click', () => sendMessage(input.value.trim()));
 input.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(input.value.trim()); });
