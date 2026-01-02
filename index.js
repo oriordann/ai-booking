@@ -254,13 +254,6 @@ Reply with exactly one word: BOOK or OTHER.
   return resp.output_text.trim().toUpperCase();
 }
 
-// Mock GP appointment slots
-const slots = {
-  '2025-12-20': ['10:00', '11:00', '14:00'],
-  '2025-12-21': ['09:30', '13:00', '15:00'],
-  '2025-12-28': ['09:30', '13:00', '15:00']
-};
-
 // Temporary in-memory conversation state
 const conversations = {};
 
@@ -323,15 +316,10 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
       selectedDate: null,
       introShown: false
     };
-
-    // 👇 send intro immediately
-  console.log("STATE before intro return:", conversations[userId]); 
-    return cfg.copy.intro;
   }
 
   console.log("STATE after init:", conversations[userId]);
   console.log("CFG intro exists?", biz, !!cfg?.copy?.intro);
-  const dates = await getAvailableDates(biz);
   const convo = conversations[userId];
   let reply;
 
@@ -340,11 +328,14 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
   // --- Conversation logic ---
 if (convo.step === "start") {
   console.log("STATE before start:", {step: convo.step, introShown:convo.introShown});
-//Show intro once per conversation
-if (!convo.introShown) {
-  convo.introShown = true;
-   console.log("Early return: intro");
+  const localIntent = detectIntentLocal(message);
+  if (localIntent !== "BOOK")
+  {
+    convo.introShown = true;
+    console.log("Early return: intro");
   return cfg.copy.intro;
+  }
+  convo.introShown = true;
 }
 
   let intent = "OTHER";
