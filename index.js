@@ -296,7 +296,6 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
   biz = (biz || "gp").toString();
   const cfg = businesses[biz] || businesses.gp;
 
-  console.log("chat req:", { userId, message, biz });
 
   if (!userId || !message) {
     return "userId and message are required";
@@ -326,7 +325,7 @@ async function handleChatMessage({ userId, message, biz = "gp" }) {
     };
 
     // 👇 send intro immediately
-   
+  console.log("STATE before intro return:", conversations[userId]); 
     return cfg.copy.intro;
   }
 
