@@ -336,7 +336,6 @@ if (convo.step === "start") {
   return cfg.copy.intro;
   }
   convo.introShown = true;
-}
 
   let intent = "OTHER";
   try {
@@ -394,6 +393,7 @@ if (convo.step === "start") {
     reply = cfg.copy?.fallback
       || "I can help you book an appointment. Just say something like “I need to book an appointment”.";
   }
+}
 
 else if (convo.step === "date_selected") {
   const dateInput = normaliseDateInput(message);
