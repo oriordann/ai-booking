@@ -170,10 +170,14 @@ async function loadConfig() {
 appendMessage("bot", document.getElementById("bizGreeting").textContent);
 
 function appendMessage(sender, text, type) {
+  if ( text== undefined || text == null) return;
+  const clean = String(text).trim();
+  if (!clean) return;
+
   const div = document.createElement('div');
   div.classList.add('message', sender);
   if (type === 'confirmed') div.classList.add('confirmed'); // NEW line
-  div.textContent = text;
+  div.textContent = clean;
   chatDiv.appendChild(div);
 
   // Smooth scroll
@@ -222,10 +226,13 @@ if (typeof data.reply === 'string') {
   } else {
     appendMessage('bot', data.reply);
   }
-} else if (typeof data.reply === 'object') {
-  appendMessage('bot', data.reply.text);
-  appendOptions(data.reply.options);
+} else if (data.reply && typeof data.reply === 'object') {
+  if (data.reply.text) appendMessage('bot', data.reply.text);
+  if (Array.isArray(data.reply.options) && data.reply.options.length) {
+    appendOptions(data.reply.options);
+  }
 }
+
 
   } catch (err) {
     appendMessage('bot', 'Error connecting to server');
