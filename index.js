@@ -394,8 +394,6 @@ if (convo.step === "start") {
     reply = cfg.copy?.fallback
       || "I can help you book an appointment. Just say something like “I need to book an appointment”.";
   }
-}
-
 
 else if (convo.step === "date_selected") {
   const dateInput = normaliseDateInput(message);
@@ -447,7 +445,6 @@ else if (convo.step === "time_selected") {
     }
   }
 }
-
 
   else if (convo.step === "collect_name") {
     convo.patientName = message.trim();
